@@ -19,12 +19,9 @@ public:
             }
 
         }
-        if(a2.size()>0){
-            for(int i:a2){
-                a1.push_back(i);
-            }
-        }
+        
 
+        a1.insert(a1.end(),a2.begin(),a2.end());
         return a1;
         
     }
