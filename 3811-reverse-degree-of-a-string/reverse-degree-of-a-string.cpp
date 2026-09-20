@@ -1,0 +1,17 @@
+class Solution {
+public:
+    int reverseDegree(string s) {
+        unordered_map<char,int>m;
+        int k=26;
+        for(int i=97;i<=122;i++){
+            m[(char)i]=k;
+            k--;
+        }
+        int sum=0;
+        for(int i=0;i<s.length();i++){
+            sum+=m[s[i]]*(i+1);
+        }
+        return sum;
+        
+    }
+};
