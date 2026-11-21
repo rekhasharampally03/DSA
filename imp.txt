@@ -1,0 +1,298 @@
+
+minikube start
+minikube status
+kubectl create deployment nginx --image=nginx
+kubectl get deployments
+kubectl expose deployment nginx --type=NodePort --port=8090 --target-port=80
+kubectl get services
+minikube service nginx
+kubectl scale deployment nginx --replicas=4
+kubectl get pods
+kubectl get services
+
+
+
+Purpose	Command
+Start containers	  =>docker compose up -d
+Start and build images=>	docker compose up -d --build
+List containers	=>docker compose ps
+View logs	=>docker compose logs
+Follow live logs=>	docker compose logs -f
+Stop containers	=>docker compose stop
+Start stopped containers=>	docker compose start
+Restart containers	=>docker compose restart
+Stop and remove containers=>	docker compose down
+Remove containers and volumes=>	docker compose down -v
+Build images	=>docker compose build
+Pull images	=>docker compose pull
+List services	=>docker compose config --services
+View configuration	=> docker compose config
+
+
+//AWS
+
+DOCKER DEPLOYMENT ON AWS EC2
+JAR FILE AND WAR FILE
+
+==================================================
+PART 1: JAVA JAR FILE DEPLOYMENT
+==================================================
+
+1. DOCKERFILE FOR JAR
+
+Create a file named Dockerfile in the project folder.
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY target/*.jar app.jar
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
+
+2. BUILD JAR FILE USING MAVEN
+
+mvn clean package
+
+3. BUILD DOCKER IMAGE
+
+docker build -t jar-app .
+
+4. CHECK DOCKER IMAGES
+
+docker images
+
+5. RUN CONTAINER
+
+docker run -d -p 8080:8080 --name jar-container jar-app
+
+6. CHECK CONTAINER
+
+docker ps
+docker ps -a
+
+7. CHECK LOGS
+
+docker logs jar-container
+
+8. ACCESS APPLICATION
+
+http://EC2-PUBLIC-IP:8080
+
+9. STOP AND REMOVE
+
+docker stop jar-container
+docker start jar-container
+docker rm -f jar-container
+docker rmi jar-app
+
+
+==================================================
+PART 2: JAVA WAR FILE DEPLOYMENT USING TOMCAT
+==================================================
+
+1. DOCKERFILE FOR WAR
+
+Create a file named Dockerfile in the project folder.
+
+FROM tomcat:9.0-jdk21
+COPY target/*.war /usr/local/tomcat/webapps/ROOT.war
+EXPOSE 8080
+CMD ["catalina.sh", "run"]
+
+2. BUILD WAR FILE USING MAVEN
+
+mvn clean package
+
+3. BUILD DOCKER IMAGE
+
+docker build -t war-app .
+
+4. CHECK DOCKER IMAGES
+
+docker images
+
+5. RUN CONTAINER
+
+docker run -d -p 8080:8080 --name war-container war-app
+
+6. CHECK CONTAINER
+
+docker ps
+docker ps -a
+
+7. CHECK LOGS
+
+docker logs war-container
+
+8. ACCESS APPLICATION
+
+http://EC2-PUBLIC-IP:8080
+
+9. STOP AND REMOVE
+
+docker stop war-container
+docker start war-container
+docker rm -f war-container
+docker rmi war-app
+
+
+==================================================
+PART 3: AWS EC2 DOCKER INSTALLATION
+==================================================
+
+Run these commands after connecting to Ubuntu EC2 using SSH.
+
+sudo apt update
+sudo apt install docker.io -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+
+Reconnect to SSH, then check:
+
+docker --version
+
+
+==================================================
+PART 4: USEFUL DOCKER COMMANDS
+==================================================
+
+docker ps
+docker ps -a
+docker images
+docker logs CONTAINER_NAME
+docker stop CONTAINER_NAME
+docker start CONTAINER_NAME
+docker restart CONTAINER_NAME
+docker rm -f CONTAINER_NAME
+docker rmi IMAGE_NAME
+docker network ls
+docker volume ls
+
+
+==================================================
+IMPORTANT DIFFERENCE
+==================================================
+
+JAR FILE:
+Runs directly using Java.
+Base image: eclipse-temurin:21-jre
+Command: java -jar app.jar
+
+WAR FILE:
+Runs inside Apache Tomcat.
+Base image: tomcat:9.0-jdk21
+Copy WAR file into Tomcat webapps folder.
+
+IMPORTANT NOTES:
+1. Run Maven build before docker build.
+2. JAR project must produce a runnable JAR.
+3. WAR project must produce a WAR file.
+4. Open inbound TCP port 8080 in the EC2 Security Group.
+5. Replace EC2-PUBLIC-IP with your instance public IPv4 address.
+6. If your WAR application uses a context path instead of ROOT.war, use that path in the browser URL.
+
+
+
+
+Q1. DOCKER COMPOSE – TOMCAT + NGINX
+
+1. CREATE PROJECT FOLDER
+
+mkdir event-management
+cd event-management
+mkdir nginx
+
+2. CREATE docker-compose.yml
+
+services:
+  tomcat:
+    image: tomcat:9.0
+    container_name: tomcat-server
+    ports:
+      - "8080:8080"
+    networks:
+      - event-network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-server
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - tomcat
+    networks:
+      - event-network
+
+networks:
+  event-network:
+    driver: bridge
+
+3. CREATE NGINX CONFIGURATION
+
+Create file: nginx/default.conf
+
+server {
+    listen 80;
+
+    location / {
+        proxy_pass http://tomcat:8080;
+    }
+}
+
+4. START BOTH CONTAINERS
+
+docker compose up -d
+
+5. VERIFY CONTAINERS
+
+docker compose ps
+
+6. CHECK LOGS
+
+docker compose logs
+docker compose logs tomcat
+docker compose logs nginx
+
+7. VERIFY NETWORK
+
+docker network ls
+docker network inspect event-management_event-network
+
+8. VERIFY CONFIGURATION
+
+docker compose config
+docker compose ps
+
+9. ACCESS IN WEB BROWSER
+
+NGINX: http://localhost
+TOMCAT: http://localhost:8080
+
+NGINX receives requests on port 80 and forwards them to Tomcat on port 8080.
+
+NOTE:
+These steps start Tomcat and NGINX. To display the actual Online Event Management System, deploy its WAR file to Tomcat. Without the WAR file, the Tomcat default page may appear.
+
+10. STOP AND REMOVE CONTAINERS
+
+docker compose stop
+docker compose start
+docker compose down
+
+QUICK REVISION
+
+Create containers: docker-compose.yml
+Configure proxy: nginx/default.conf
+Start: docker compose up -d
+Check containers: docker compose ps
+Check logs: docker compose logs
+Check network: docker network ls
+Stop: docker compose stop
+Start stopped containers: docker compose start
+Remove containers and network: docker compose down
+
+IMPORTANT:
+Use http://tomcat:8080 in proxy_pass, not localhost:8080.
+'tomcat' is the service name inside the Docker network.
