@@ -1,0 +1,230 @@
+:: 1. Start Kubernetes cluster
+minikube start --driver=docker
+
+:: 2. Check cluster
+minikube status
+kubectl get nodes
+
+:: 3. Create deployment with 2 replicas
+kubectl create deployment library-app --image=nginx --replicas=2
+
+:: 4. Check deployment and pods
+kubectl get deployments
+kubectl get pods
+
+:: 5. Expose deployment
+kubectl expose deployment library-app --type=NodePort --port=80
+
+:: 6. Check service
+kubectl get services
+
+:: 7. Open application
+minikube service library-app
+
+:: 8. Scale from 2 to 5
+kubectl scale deployment library-app --replicas=5
+
+:: 9. Check pods
+kubectl get pods
+
+:: 10. Delete one pod (replace with actual pod name)
+kubectl delete pod POD_NAME
+
+:: 11. Update application image
+kubectl set image deployment/library-app nginx=nginx:1.27
+
+:: 12. Check rollout
+kubectl rollout status deployment/library-app
+
+:: 13. Rollback
+kubectl rollout undo deployment/library-app
+
+:: 14. View rollout history
+kubectl rollout history deployment/library-app
+
+
+
+
+
+:: Check Docker
+docker --version
+docker ps
+
+:: Pull Nagios image
+docker pull jasonrivers/nagios:latest
+
+:: Run Nagios
+docker run -d --name nagios4 -p 8082:80 jasonrivers/nagios:latest
+
+:: Check Nagios container
+docker ps
+docker logs nagios4
+
+:: Connect Nagios to application network
+docker network connect library-net nagios4
+
+:: List monitoring plugins
+docker exec -it nagios4 ls /opt/nagios/libexec
+
+:: List configuration files
+docker exec -it nagios4 ls /opt/nagios/etc/objects
+
+:: View localhost configuration
+docker exec -it nagios4 cat /opt/nagios/etc/objects/localhost.cfg
+
+:: Test WordPress HTTP connectivity
+docker exec -it nagios4 /opt/nagios/libexec/check_http -H library-wp -p 80
+
+:: Test MySQL TCP connectivity
+docker exec -it nagios4 /opt/nagios/libexec/check_tcp -H library-db -p 3306
+
+:: Stop and start application for recovery demonstration
+docker stop library-wp
+docker start library-wp
+
+:: Check running containers
+docker ps
+
+
+
+docker-compose.yml file
+
+services:
+
+  tomcat:
+    image: tomcat:9-jdk17
+    container_name: event-tomcat
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./OnlineEventManagement.war:/usr/local/tomcat/webapps/OnlineEventManagement.war:ro
+    networks:
+      - event-network
+
+  nginx:
+    image: nginx:latest
+    container_name: event-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - tomcat
+    networks:
+      - event-network
+
+networks:
+  event-network:
+    driver: bridge
+
+
+
+docker compose up -d
+docker compose ps
+docker compose logs
+docker network ls
+docker network inspect NETWORK_NAME
+docker compose down
+
+
+
+sudo apt update
+sudo apt install openjdk-17-jdk git maven -y
+
+git clone https://github.com/haleema91/LAB-INTERNAL-II-OEMS.git OnlineEventManagement
+
+cd OnlineEventManagement
+
+mvn clean package
+
+ls target/*.war
+
+sudo systemctl status tomcat9
+sudo systemctl start tomcat9
+sudo systemctl enable tomcat9
+
+sudo cp target/*.war /var/lib/tomcat9/webapps/OnlineEventManagement.war
+
+sudo systemctl restart tomcat9
+
+
+
+minikube start --driver=docker
+
+kubectl create deployment event-app --image=nginx --replicas=2
+
+kubectl expose deployment event-app --type=NodePort --port=6060 --target-port=80
+
+kubectl get pods
+kubectl get deployments
+kubectl get services
+
+kubectl scale deployment event-app --replicas=3
+
+kubectl get all
+
+minikube service event-app
+
+
+
+
+
+
+
+docker pull jasonrivers/nagios:latest
+
+docker run -d --name nagios4 -p 8082:80 jasonrivers/nagios:latest
+
+docker ps
+
+docker logs nagios4
+
+docker exec -it nagios4 bash
+
+
+
+
+
+
+
+
+node {
+
+    // Stage 1: Clean Workspace
+    stage('Clean Workspace') {
+        cleanWs()
+    }
+
+    // Stage 2: Clone GitHub Repository
+    stage('Git Clone') {
+        git branch: 'main',
+            url: 'https://github.com/USERNAME/PROJECT.git'
+    }
+
+    // Stage 3: Configure Maven
+    stage('Maven Setup') {
+        def mvnHome = tool 'Maven3'
+        env.PATH = "${mvnHome}/bin:${env.PATH}"
+    }
+
+    // Stage 4: Clean Previous Build
+    stage('Maven Clean') {
+        sh 'mvn clean'
+    }
+
+    // Stage 5: Compile Project
+    stage('Compile') {
+        sh 'mvn compile'
+    }
+
+    // Stage 6: Package Project
+    stage('Package') {
+        sh 'mvn package'
+    }
+
+    // Stage 7: Archive WAR/JAR
+    stage('Archive Artifact') {
+        archiveArtifacts artifacts: 'target/*.war',
+                         allowEmptyArchive: false
+    }
+}
